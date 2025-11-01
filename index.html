@@ -1,0 +1,647 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Convert Between Cubic Units and Liters — Mr. McLean Math</title>
+<style>
+  :root{
+    --bg:#0b1020;
+    --panel:#131a33;
+    --accent:#5dd2ff;
+    --accent-2:#8cff7a;
+    --wrong:#ff6b6b;
+    --ok:#66ffb2;
+    --text:#e9eefc;
+    --muted:#a9b3d3;
+    --hc-bg:#000;
+    --hc-text:#fff;
+    --hc-accent:#fff600;
+  }
+  html,body{height:100%;}
+  body{
+    margin:0; font-family:system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+    background:var(--bg); color:var(--text); display:flex; flex-direction:column; gap:16px;
+  }
+  header{ padding:16px 16px 0 16px; }
+  h1{margin:0; font-size:clamp(24px,3.6vw,38px); font-weight:800; letter-spacing:0.2px;}
+  .subtitle{color:var(--muted); margin-top:4px; font-size:clamp(13px,2vw,16px);}
+  .toolbar{ display:flex; flex-wrap:wrap; gap:10px; margin-top:12px; }
+  .toolbar .group{background:var(--panel); border-radius:14px; padding:10px; display:flex; gap:8px; align-items:center;}
+  label{font-size:14px; color:var(--muted);}
+  select, input[type="number"], input[type="text"]{
+    background:#0e1430; border:1px solid #2a376b; color:var(--text); border-radius:10px; padding:8px 10px; font-size:16px; outline:none;
+  }
+  button{
+    background:linear-gradient(180deg, #1e2b60, #14204d);
+    border:1px solid #2a3a76; color:var(--text); border-radius:12px; padding:10px 14px; font-size:16px; cursor:pointer;
+    transition:transform .05s ease, filter .2s ease;
+  }
+  button:hover{filter:brightness(1.12);}
+  button:active{transform:translateY(1px);}
+  .primary{background:linear-gradient(180deg, #14a1ff, #0a7ccd); border-color:#0a7ccd; color:#001426; font-weight:700;}
+  .success{background:linear-gradient(180deg, #25d37d, #14a663); border-color:#14a663; color:#001d10; font-weight:700;}
+  .danger{background:linear-gradient(180deg, #ff6b6b, #d74343); border-color:#d74343; color:#240000; font-weight:700;}
+  .panel{ background:var(--panel); border-radius:18px; padding:16px; box-shadow:0 10px 30px rgba(0,0,0,0.25); }
+  main{display:grid; grid-template-columns:1fr; gap:12px; padding:0 16px 16px 16px;}
+  .row{display:flex; gap:10px; align-items:center; flex-wrap:wrap;}
+  .prompt{ font-size:clamp(22px,4.2vw,42px); font-weight:800; letter-spacing:0.5px; text-shadow:0 2px 0 rgba(0,0,0,0.3); }
+  .big-input{ font-size:clamp(22px,4vw,36px); padding:12px 14px; border-radius:14px; width:min(420px, 90%); }
+  .unit-badge{
+    display:inline-block; padding:4px 10px; border-radius:999px; background:#0f1842; border:1px solid #334083; color:#cfe0ff;
+    font-weight:700; font-size:clamp(16px,2.8vw,20px);
+  }
+  .feedback{ min-height:28px; font-size:18px; display:flex; align-items:center; gap:10px; margin-top:8px; }
+  .check{color:var(--ok); font-weight:800;}
+  .cross{color:var(--wrong); font-weight:800;}
+  .muted{color:var(--muted);}
+  .pill{ border-radius:999px; padding:6px 10px; background:#0e1430; border:1px solid #2a376b; color:var(--muted); font-size:13px; }
+  .scorebar{display:flex; gap:10px; flex-wrap:wrap;}
+  .scorebar .pill strong{color:var(--text);}
+  .controls{display:flex; gap:8px; flex-wrap:wrap;}
+  .steps{background:#0e1430; border:1px solid #2a376b; border-radius:12px; padding:10px; margin-top:10px; font-size:15px; line-height:1.45;}
+  .sr-only{position:absolute; left:-10000px; width:1px; height:1px; overflow:hidden;}
+  .footer{ text-align:center; color:var(--muted); font-size:13px; padding:10px 16px 18px 16px; }
+  .grid-2{display:grid; grid-template-columns:1fr 1fr; gap:12px;}
+  @media (max-width: 900px){ .grid-2{grid-template-columns:1fr;} }
+
+  /* Worksheet mode */
+  .worksheet{ display:none; }
+  .worksheet.active{display:block;}
+  .ws-controls{display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-bottom:10px;}
+  .ws-problem{font-size:clamp(22px,3.6vw,34px); margin:12px 0; font-weight:700;}
+  .ws-answer{font-size:clamp(20px,3.2vw,30px); color:var(--accent-2); display:none;}
+  .ws-header{font-size:clamp(16px,2.2vw,18px); color:var(--muted);}
+  .reveal .ws-answer{display:block;}
+  .ws-buttons{display:flex; gap:8px; flex-wrap:wrap; margin:8px 0 2px;}
+
+  /* High contrast mode */
+  .hc body, .hc{ background:var(--hc-bg) !important; color:var(--hc-text) !important; }
+  .hc .panel, .hc .group{ background:#000 !important; border-color:#fff !important;}
+  .hc .unit-badge{ background:#000 !important; border-color:#fff !important; color:#fff !important;}
+  .hc button{ background:#111 !important; border-color:#fff !important; color:#fff !important;}
+  .hc .prompt{ text-shadow:none !important;}
+  .hc .pill{ background:#000 !important; border-color:#fff !important; color:#fff !important;}
+  .hc .steps{ background:#000 !important; border-color:#fff !important; color:#fff !important;}
+  .hc .ws-answer{ color:var(--hc-accent) !important;}
+
+  /* Toggle row */
+  .toggles{display:flex; flex-wrap:wrap; gap:8px;}
+  .toggle{
+    display:inline-flex; align-items:center; gap:8px; background:var(--panel); border:1px solid #2a376b; padding:8px 10px; border-radius:14px;
+  }
+  .toggle input{ accent-color:#2dd4bf; width:18px; height:18px;}
+  a.link{color:var(--accent);}
+</style>
+</head>
+<body>
+<header>
+  <h1>Convert Between Cubic Units and Liters</h1>
+  <div class="subtitle">Free input • Projector-friendly • Mixed directions (mm³, cm³, dm³, m³ ↔ mL, cL, dL, L, kL)</div>
+
+  <div class="toolbar">
+    <div class="group">
+      <label for="modeSel">Mode</label>
+      <select id="modeSel" aria-label="Mode selector">
+        <option value="game">Game mode</option>
+        <option value="worksheet">Worksheet mode</option>
+      </select>
+    </div>
+
+    <div class="group" id="wsGroup" style="display:none">
+      <label for="wsCount">Worksheet size</label>
+      <select id="wsCount" aria-label="Worksheet problem count">
+        <option value="5">5</option>
+        <option value="10" selected>10</option>
+        <option value="15">15</option>
+      </select>
+      <button id="btnGenWs" class="primary">Generate Worksheet</button>
+      <button id="btnBackToGame">Back to Game</button>
+    </div>
+
+    <div class="group">
+      <label for="rangeSel">Value range</label>
+      <select id="rangeSel" aria-label="Starting value range">
+        <option value="small" selected>0.1 – 50</option>
+        <option value="medium">0.1 – 5 000</option>
+        <option value="large">0.1 – 200 000</option>
+      </select>
+    </div>
+
+    <div class="group">
+      <div class="toggles">
+        <label class="toggle"><input type="checkbox" id="toggleTimer"> <span>Timer (Off)</span></label>
+        <label class="toggle"><input type="checkbox" id="toggleSound" checked> <span>Sound (On)</span></label>
+        <label class="toggle"><input type="checkbox" id="toggleHC"> <span>High Contrast</span></label>
+      </div>
+    </div>
+  </div>
+</header>
+
+<main>
+  <section id="gamePanel" class="panel" role="region" aria-labelledby="promptText">
+    <div class="row">
+      <div class="prompt" id="promptText" aria-live="polite">—</div>
+    </div>
+
+    <div class="row" style="margin-top:8px;">
+      <input id="answerInput" class="big-input" type="text" inputmode="decimal" autocomplete="off" placeholder="Type number only…" aria-label="Answer input (number only)">
+      <span class="unit-badge" id="targetUnitBadge">unit</span>
+    </div>
+
+    <div class="controls" style="margin-top:8px;">
+      <button id="btnSubmit" class="primary">Submit (Enter)</button>
+      <button id="btnNext" disabled>Next (Enter)</button>
+      <button id="btnClear">Clear (Esc)</button>
+      <button id="btnShowSteps" class="danger" disabled>Show Steps</button>
+    </div>
+
+    <div class="feedback" aria-live="assertive" id="feedbackRow">
+      <span class="muted">Answer the question, then press Enter.</span>
+    </div>
+
+    <div id="stepsBox" class="steps" style="display:none;"></div>
+
+    <div class="row" style="margin-top:10px; justify-content:space-between; align-items:flex-start;">
+      <div class="scorebar">
+        <span class="pill">Score: <strong id="score">0</strong></span>
+        <span class="pill">Streak: <strong id="streak">0</strong></span>
+        <span class="pill">Correct: <strong id="correctCount">0</strong></span>
+        <span class="pill">Total: <strong id="totalCount">0</strong></span>
+        <span class="pill">Accuracy: <strong id="accuracy">—</strong></span>
+        <span class="pill" id="timerPill" style="display:none;">Time: <strong id="timeLeft">0</strong>s</span>
+      </div>
+      <div class="pill">Thousands use spaces • Dot or comma allowed</div>
+    </div>
+
+    <div id="incorrectList" class="steps" style="display:none; margin-top:12px;">
+      <strong>Incorrect this session:</strong>
+      <ul id="incorrectUl" style="margin-top:6px; padding-left:18px;"></ul>
+    </div>
+  </section>
+
+  <section id="worksheetPanel" class="panel worksheet" aria-label="Worksheet mode">
+    <div class="ws-header">Convert between cubic units and liters. Write the number only (no unit).</div>
+    <div class="ws-buttons">
+      <button id="btnRevealAll" class="success">Reveal All</button>
+      <button id="btnHideAll">Hide All</button>
+      <button id="btnNewWorksheet">New Set</button>
+    </div>
+    <div id="wsList"></div>
+  </section>
+</main>
+
+<div class="footer">Created by Mr. McLean Math.</div>
+
+<!-- ARIA live region for concise announcements -->
+<div aria-live="polite" class="sr-only" id="live"></div>
+
+<script>
+/* =========================
+   Utility & Number Formatting
+   ========================= */
+const sepSpace = (nStr) => {
+  const [intPart, decPart] = String(nStr).split(".");
+  const intFmt = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, " ");
+  return decPart !== undefined && decPart !== "" ? intFmt + "." + decPart : intFmt;
+};
+const fmtNumber = (num) => {
+  if (!isFinite(num)) return String(num);
+  let s = (Math.round((num + Number.EPSILON) * 1e10) / 1e10).toString();
+  if (s.indexOf("e") !== -1 || s.indexOf("E") !== -1) s = Number(num.toFixed(10)).toString();
+  if (s.includes(".")) s = s.replace(/\.?0+$/,"");
+  const parts = s.split(".");
+  const intFmt = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, " ");
+  return parts.length === 2 ? intFmt + "." + parts[1] : intFmt;
+};
+const parseUserNumber = (str) => {
+  if (typeof str !== "string") return NaN;
+  const cleaned = str.replace(/\s+/g,"").replace(",",".");
+  if (cleaned === "" || cleaned === "." || cleaned === "-" || cleaned === "+") return NaN;
+  const n = Number(cleaned);
+  return isFinite(n) ? n : NaN;
+};
+const nearlyEqual = (a,b) => {
+  if (a === b) return true;
+  const diff = Math.abs(a-b);
+  const rel = diff / Math.max(1, Math.abs(a), Math.abs(b));
+  return diff < 5e-4 || rel < 1e-6;
+};
+
+/* =========================
+   Units & Conversions
+   ========================= */
+// Factors to liters (L)
+const toL = {
+  "mm³": 1e-6,     // 1 mm³ = 1e-6 L
+  "cm³": 1e-3,     // 1 cm³ = 1 mL
+  "dm³": 1,        // 1 dm³ = 1 L
+  "m³": 1000,      // 1 m³ = 1000 L
+  "mL": 1e-3,
+  "cL": 1e-2,
+  "dL": 1e-1,
+  "L": 1,
+  "kL": 1000
+};
+const cubicUnits = ["mm³","cm³","dm³","m³"];
+const literUnits = ["mL","cL","dL","L","kL"];
+
+function convert(value, fromU, toU){
+  const inL = value * toL[fromU];
+  return inL / toL[toU];
+}
+
+function explainSteps(value, fromU, toU){
+  const fToL = toL[fromU];
+  const tFromL = 1/toL[toU];
+  let lines = [];
+  lines.push(`1 ${fromU} = ${fmtNumber(fToL)} L`);
+  lines.push(`${fmtNumber(value)} ${fromU} = ${fmtNumber(value)} × ${fmtNumber(fToL)} L = ${fmtNumber(value*fToL)} L`);
+  lines.push(`1 L = ${fmtNumber(tFromL)} ${toU}`);
+  lines.push(`${fmtNumber(value*fToL)} L = ${fmtNumber(value*fToL)} × ${fmtNumber(tFromL)} ${toU} = ${fmtNumber((value*fToL)*tFromL)} ${toU}`);
+  const factor = (toL[fromU]/toL[toU]);
+  const pow10 = Math.log10(factor);
+  if (Number.isInteger(pow10)) {
+    const dir = pow10 >= 0 ? "multiply" : "divide";
+    lines.push(`Compact: factor = ${fmtNumber(factor)} (10^${pow10}). So ${dir} by ${fmtNumber(Math.abs(factor))}.`);
+  }
+  return lines.join("<br>");
+}
+
+/* =========================
+   Problem Generation (STRICT Cross-type)
+   ========================= */
+function sampleRange(rangeSel){
+  switch(rangeSel){
+    case "small": return {min:0.1, max:50};
+    case "large": return {min:0.1, max:200000};
+    case "medium":
+    default: return {min:0.1, max:5000};
+  }
+}
+function randChoice(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
+function randValue(min,max){
+  const useDecimal = Math.random() < 0.5;
+  const val = min + Math.random()*(max-min);
+  return useDecimal ? Math.round(val*10)/10 : Math.round(val);
+}
+function newProblem(rangeKey){
+  const {min,max} = sampleRange(rangeKey);
+  // 50/50 choose direction: cubic → liter OR liter → cubic
+  const cubicToLiter = Math.random() < 0.5;
+  const fromU = cubicToLiter ? randChoice(cubicUnits) : randChoice(literUnits);
+  const toU   = cubicToLiter ? randChoice(literUnits) : randChoice(cubicUnits);
+
+  let value, result, attempts=0;
+  do{
+    value = randValue(min,max);
+    result = convert(value, fromU, toU);
+    attempts++;
+  } while (attempts < 20 && (!isFinite(result) || Math.abs(result) < 1e-9 || Math.abs(result) > 1e12));
+
+  return {
+    prompt: `${fmtNumber(value)} ${fromU} = ______ ${toU}`,
+    fromU, toU, value, answer: result
+  };
+}
+
+/* =========================
+   State & Elements
+   ========================= */
+const promptText = document.getElementById("promptText");
+const targetUnitBadge = document.getElementById("targetUnitBadge");
+const answerInput = document.getElementById("answerInput");
+const btnSubmit = document.getElementById("btnSubmit");
+const btnNext = document.getElementById("btnNext");
+const btnClear = document.getElementById("btnClear");
+const btnShowSteps = document.getElementById("btnShowSteps");
+const feedbackRow = document.getElementById("feedbackRow");
+const stepsBox = document.getElementById("stepsBox");
+
+const scoreEl = document.getElementById("score");
+const streakEl = document.getElementById("streak");
+const correctCountEl = document.getElementById("correctCount");
+const totalCountEl = document.getElementById("totalCount");
+const accuracyEl = document.getElementById("accuracy");
+
+const incorrectList = document.getElementById("incorrectList");
+const incorrectUl = document.getElementById("incorrectUl");
+
+const modeSel = document.getElementById("modeSel");
+const wsGroup = document.getElementById("wsGroup");
+const worksheetPanel = document.getElementById("worksheetPanel");
+const gamePanel = document.getElementById("gamePanel");
+const wsCount = document.getElementById("wsCount");
+const btnGenWs = document.getElementById("btnGenWs");
+const btnBackToGame = document.getElementById("btnBackToGame");
+const wsList = document.getElementById("wsList");
+const btnRevealAll = document.getElementById("btnRevealAll");
+const btnHideAll = document.getElementById("btnHideAll");
+const btnNewWorksheet = document.getElementById("btnNewWorksheet");
+
+const rangeSel = document.getElementById("rangeSel");
+
+const toggleTimer = document.getElementById("toggleTimer");
+const toggleSound = document.getElementById("toggleSound");
+const toggleHC = document.getElementById("toggleHC");
+const timerPill = document.getElementById("timerPill");
+const timeLeftEl = document.getElementById("timeLeft");
+const live = document.getElementById("live");
+
+let state = {
+  problem: null,
+  score: 0,
+  streak: 0,
+  correct: 0,
+  total: 0,
+  incorrectItems: [],
+  awaitingNext:false,
+  timerOn:false,
+  timeLeft:0,
+  timerId:null
+};
+
+/* =========================
+   Sound (beeps)
+   ========================= */
+let audioCtx = null;
+function ensureAudio(){
+  if (!audioCtx) {
+    try{ audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch(e){ audioCtx = null; }
+  }
+}
+function beepCorrect(){
+  if (!toggleSound.checked || !audioCtx) return;
+  const o = audioCtx.createOscillator();
+  const g = audioCtx.createGain();
+  o.type = "sine"; o.frequency.setValueAtTime(880, audioCtx.currentTime);
+  g.gain.setValueAtTime(0.0001, audioCtx.currentTime);
+  g.gain.exponentialRampToValueAtTime(0.2, audioCtx.currentTime + 0.01);
+  g.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.2);
+  o.connect(g).connect(audioCtx.destination);
+  o.start(); o.stop(audioCtx.currentTime + 0.2);
+}
+function beepWrong(){
+  if (!toggleSound.checked || !audioCtx) return;
+  const o = audioCtx.createOscillator();
+  const g = audioCtx.createGain();
+  o.type = "square"; o.frequency.setValueAtTime(220, audioCtx.currentTime);
+  g.gain.setValueAtTime(0.0001, audioCtx.currentTime);
+  g.gain.exponentialRampToValueAtTime(0.18, audioCtx.currentTime + 0.01);
+  g.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.3);
+  o.connect(g).connect(audioCtx.destination);
+  o.start(); o.stop(audioCtx.currentTime + 0.3);
+}
+
+/* =========================
+   Timer
+   ========================= */
+function startTimer(seconds=60){
+  clearTimer();
+  state.timeLeft = seconds;
+  timerPill.style.display = "";
+  timeLeftEl.textContent = state.timeLeft;
+  state.timerId = setInterval(()=>{
+    state.timeLeft--;
+    timeLeftEl.textContent = state.timeLeft;
+    if (state.timeLeft <= 0){
+      clearTimer();
+      if (!state.awaitingNext){
+        markIncorrect("(time up)");
+      }
+    }
+  }, 1000);
+}
+function clearTimer(){
+  if (state.timerId){ clearInterval(state.timerId); state.timerId = null; }
+}
+
+/* =========================
+   Session & UI
+   ========================= */
+function updateStats(){
+  scoreEl.textContent = state.score;
+  streakEl.textContent = state.streak;
+  correctCountEl.textContent = state.correct;
+  totalCountEl.textContent = state.total;
+  const acc = state.total ? Math.round((state.correct/state.total)*100) : null;
+  accuracyEl.textContent = state.total ? (acc + "%") : "—";
+  incorrectList.style.display = state.incorrectItems.length ? "" : "none";
+}
+
+function announce(msg){ live.textContent = ""; setTimeout(()=>{ live.textContent = msg; }, 10); }
+
+function newRound(){
+  state.problem = newProblem(rangeSel.value);
+  promptText.innerHTML = state.problem.prompt;
+  targetUnitBadge.textContent = state.problem.toU;
+  stepsBox.style.display = "none";
+  stepsBox.innerHTML = "";
+  feedbackRow.innerHTML = `<span class="muted">Answer the question, then press Enter.</span>`;
+  answerInput.value = "";
+  answerInput.focus();
+  btnSubmit.disabled = false;
+  btnNext.disabled = true;
+  btnShowSteps.disabled = true;
+  state.awaitingNext = false;
+
+  if (toggleTimer.checked){
+    startTimer(60);
+  } else {
+    timerPill.style.display = "none";
+    clearTimer();
+  }
+}
+
+function markCorrect(){
+  clearTimer();
+  state.score += 10;
+  state.streak += 1;
+  if (state.streak % 5 === 0) state.score += 5;
+  state.correct += 1;
+  state.total += 1;
+  updateStats();
+  feedbackRow.innerHTML = `<span class="check">Correct!</span>`;
+  announce("Correct. Press Enter or Next for the next problem.");
+  beepCorrect();
+  btnSubmit.disabled = true;
+  btnNext.disabled = false;
+  btnShowSteps.disabled = false; // allow to inspect steps even when correct
+  state.awaitingNext = true;
+}
+
+function markIncorrect(note=""){
+  clearTimer();
+  state.streak = 0;
+  state.total += 1;
+  updateStats();
+  const correctStr = fmtNumber(state.problem.answer);
+  feedbackRow.innerHTML = `<span class="cross">Incorrect.</span> <span class="muted">Correct answer:</span> <strong>${sepSpace(correctStr)}</strong>`;
+  announce("Incorrect. You can review the steps, then press Next.");
+  beepWrong();
+  btnSubmit.disabled = true;
+  btnNext.disabled = false;
+  btnShowSteps.disabled = false;
+  state.awaitingNext = true;
+  const item = `${fmtNumber(state.problem.value)} ${state.problem.fromU} → ${sepSpace(correctStr)} ${state.problem.toU}${note ? " " + note : ""}`;
+  state.incorrectItems.push(item);
+  const li = document.createElement("li");
+  li.textContent = item;
+  incorrectUl.appendChild(li);
+  incorrectList.style.display = "";
+}
+
+function onSubmit(){
+  ensureAudio();
+  if (!state.problem) return;
+  const v = parseUserNumber(answerInput.value);
+  if (!isFinite(v)){
+    feedbackRow.innerHTML = `<span class="muted">Please type a number (no unit), then press Enter.</span>`;
+    announce("Please type a number.");
+    return;
+  }
+  const ok = nearlyEqual(v, state.problem.answer);
+  if (ok) markCorrect();
+  else markIncorrect();
+}
+
+function onShowSteps(){
+  if (!state.problem) return;
+  const {value, fromU, toU} = state.problem;
+  const txt = explainSteps(value, fromU, toU);
+  stepsBox.innerHTML = txt;
+  stepsBox.style.display = "";
+}
+
+function onNext(){ newRound(); }
+
+/* =========================
+   Worksheet Mode
+   ========================= */
+function goWorksheet(){
+  gamePanel.style.display = "none";
+  worksheetPanel.classList.add("active");
+  wsGroup.style.display = "";
+}
+function goGame(){
+  worksheetPanel.classList.remove("active");
+  gamePanel.style.display = "";
+  wsGroup.style.display = "none";
+  newRound();
+}
+function buildWorksheet(n){
+  wsList.innerHTML = "";
+  worksheetPanel.classList.remove("reveal");
+  for (let i=1;i<=n;i++){
+    const p = newProblem(rangeSel.value);
+    const row = document.createElement("div");
+    const q = document.createElement("div");
+    const a = document.createElement("div");
+    row.className = "ws-row";
+    q.className = "ws-problem";
+    a.className = "ws-answer";
+    q.textContent = `${i}. ${fmtNumber(p.value)} ${p.fromU} = ______ ${p.toU}`;
+    const correctStr = fmtNumber(p.answer);
+    a.textContent = `Answer: ${sepSpace(correctStr)} ${p.toU}`;
+    row.appendChild(q); row.appendChild(a);
+    wsList.appendChild(row);
+  }
+}
+document.getElementById("btnRevealAll").addEventListener("click", ()=>{ worksheetPanel.classList.add("reveal"); });
+document.getElementById("btnHideAll").addEventListener("click", ()=>{ worksheetPanel.classList.remove("reveal"); });
+document.getElementById("btnNewWorksheet").addEventListener("click", ()=>{ buildWorksheet(Number(wsCount.value)); });
+
+/* =========================
+   Event Wiring
+   ========================= */
+btnSubmit.addEventListener("click", onSubmit);
+btnShowSteps.addEventListener("click", onShowSteps);
+btnNext.addEventListener("click", onNext);
+btnClear.addEventListener("click", ()=>{ answerInput.value=""; answerInput.focus(); stepsBox.style.display="none"; stepsBox.innerHTML=""; });
+
+answerInput.addEventListener("keydown", (e)=>{
+  if (e.key === "Enter"){
+    if (state.awaitingNext){ onNext(); }
+    else { onSubmit(); }
+  } else if (e.key === "Escape"){
+    e.preventDefault();
+    answerInput.value = "";
+  }
+});
+
+modeSel.addEventListener("change", ()=>{
+  if (modeSel.value === "worksheet"){ goWorksheet(); }
+  else { goGame(); }
+});
+
+btnGenWs.addEventListener("click", ()=>{ buildWorksheet(Number(wsCount.value)); });
+btnBackToGame.addEventListener("click", ()=>{ modeSel.value = "game"; goGame(); });
+
+toggleTimer.addEventListener("change", ()=>{
+  if (toggleTimer.checked){
+    toggleTimer.nextElementSibling.textContent = "Timer (On: 60s)";
+    startTimer(60);
+  } else {
+    toggleTimer.nextElementSibling.textContent = "Timer (Off)";
+    clearTimer(); timerPill.style.display="none";
+  }
+});
+toggleSound.addEventListener("change", ()=>{
+  toggleSound.nextElementSibling.textContent = toggleSound.checked ? "Sound (On)" : "Sound (Off)";
+});
+toggleHC.addEventListener("change", ()=>{
+  document.documentElement.classList.toggle("hc", toggleHC.checked);
+});
+
+/* =========================
+   Developer Tests (?dev=1)
+   ========================= */
+function devAssert(name, fn){
+  try{
+    const res = fn();
+    if (!res) throw new Error("Assertion failed");
+    console.log("✅", name);
+  }catch(e){
+    console.error("❌", name, e);
+  }
+}
+function runDevTests(){
+  console.log("=== DEV TESTS: Convert Between Cubic Units and Liters ===");
+  devAssert("1 cm³ == 1 mL", ()=> nearlyEqual(convert(1,"cm³","mL"), 1));
+  devAssert("1 dm³ == 1 L", ()=> nearlyEqual(convert(1,"dm³","L"), 1));
+  devAssert("1 m³ == 1000 L", ()=> nearlyEqual(convert(1,"m³","L"), 1000));
+  devAssert("1000 mL == 1 L", ()=> nearlyEqual(convert(1000,"mL","L"), 1));
+  devAssert("250 cL == 2.5 L", ()=> nearlyEqual(convert(250,"cL","L"), 2.5));
+  devAssert("500 mL == 0.5 L", ()=> nearlyEqual(convert(500,"mL","L"), 0.5));
+  devAssert("2.5 dm³ == 250 cL", ()=> nearlyEqual(convert(2.5,"dm³","cL"), 250));
+  devAssert("500 mL == 500 cm³", ()=> nearlyEqual(convert(500,"mL","cm³"), 500));
+  devAssert("1 000 000 mm³ == 1 L", ()=> nearlyEqual(convert(1_000_000,"mm³","L"), 1));
+  devAssert("2 kL == 2 m³", ()=> nearlyEqual(convert(2,"kL","m³"), 2));
+  // Generator constraints: always cross-type
+  for (let i=0;i<30;i++){
+    const p = newProblem("small"); // use default range semantics in test too
+    const isFromCubic = cubicUnits.includes(p.fromU);
+    const isToCubic = cubicUnits.includes(p.toU);
+    const isFromLiter = literUnits.includes(p.fromU);
+    const isToLiter = literUnits.includes(p.toU);
+    devAssert("Generated units are cross-type", ()=> (isFromCubic && isToLiter) || (isFromLiter && isToCubic));
+    devAssert("Answer finite", ()=> isFinite(p.answer));
+  }
+}
+
+/* =========================
+   Init
+   ========================= */
+(function init(){
+  const params = new URLSearchParams(location.search);
+  if (params.get("dev") === "1"){ runDevTests(); }
+
+  // Default UI: Worksheet controls hidden; range default already set to "small"
+  wsGroup.style.display = "none";
+  newRound();
+  setTimeout(()=>{ answerInput.focus(); }, 200);
+  announce("Enter to submit. On correct, Enter goes to Next. Escape clears input.");
+})();
+</script>
+</body>
+</html>
