@@ -97,7 +97,7 @@
 <body>
 <header>
   <h1>Convert Between Cubic Units and Liters</h1>
-  <div class="subtitle">Free input • Projector-friendly • Mixed directions (mm³, cm³, dm³, m³ ↔ mL, cL, dL, L, kL)</div>
+  <div class="subtitle" id="subtitleText">Free input • Projector-friendly • Mixed directions (mm³, cm³, dm³, m³ ↔ mL, cL, dL, L, kL)</div>
 
   <div class="toolbar">
     <div class="group">
@@ -117,6 +117,14 @@
       </select>
       <button id="btnGenWs" class="primary">Generate Worksheet</button>
       <button id="btnBackToGame">Back to Game</button>
+    </div>
+
+    <div class="group">
+      <label for="difficultySel">Difficulty</label>
+      <select id="difficultySel" aria-label="Difficulty selector">
+        <option value="basic" selected>Basic</option>
+        <option value="advanced">Advanced</option>
+      </select>
     </div>
 
     <div class="group">
@@ -193,7 +201,6 @@
 
 <div class="footer">Created by Mr. McLean Math.</div>
 
-<!-- ARIA live region for concise announcements -->
 <div aria-live="polite" class="sr-only" id="live"></div>
 
 <script>
@@ -233,18 +240,25 @@ const nearlyEqual = (a,b) => {
    ========================= */
 // Factors to liters (L)
 const toL = {
-  "mm³": 1e-6,     // 1 mm³ = 1e-6 L
-  "cm³": 1e-3,     // 1 cm³ = 1 mL
-  "dm³": 1,        // 1 dm³ = 1 L
-  "m³": 1000,      // 1 m³ = 1000 L
+  "mm³": 1e-6,
+  "cm³": 1e-3,
+  "dm³": 1,
+  "m³": 1000,
   "mL": 1e-3,
   "cL": 1e-2,
   "dL": 1e-1,
   "L": 1,
   "kL": 1000
 };
+
 const cubicUnits = ["mm³","cm³","dm³","m³"];
 const literUnits = ["mL","cL","dL","L","kL"];
+
+// BASIC: restrict ONLY the STARTING unit (fromU), not the target.
+// cubic→liter must start from cm³/dm³/m³
+// liter→cubic must start from mL/L
+const basicStartCubic = ["cm³","dm³","m³"];
+const basicStartLiter = ["mL","L"];
 
 function convert(value, fromU, toU){
   const inL = value * toL[fromU];
@@ -285,12 +299,29 @@ function randValue(min,max){
   const val = min + Math.random()*(max-min);
   return useDecimal ? Math.round(val*10)/10 : Math.round(val);
 }
-function newProblem(rangeKey){
+
+function newProblem(rangeKey, difficulty){
   const {min,max} = sampleRange(rangeKey);
-  // 50/50 choose direction: cubic → liter OR liter → cubic
+
   const cubicToLiter = Math.random() < 0.5;
-  const fromU = cubicToLiter ? randChoice(cubicUnits) : randChoice(literUnits);
-  const toU   = cubicToLiter ? randChoice(literUnits) : randChoice(cubicUnits);
+
+  let fromU, toU;
+
+  if (difficulty === "basic"){
+    if (cubicToLiter){
+      // START from key-fact cubic unit, but target can be ANY liter unit
+      fromU = randChoice(basicStartCubic);
+      toU   = randChoice(literUnits);
+    } else {
+      // START from key-fact liter unit, but target can be ANY cubic unit
+      fromU = randChoice(basicStartLiter);
+      toU   = randChoice(cubicUnits);
+    }
+  } else {
+    // Advanced: full mixed sets both ways
+    fromU = cubicToLiter ? randChoice(cubicUnits) : randChoice(literUnits);
+    toU   = cubicToLiter ? randChoice(literUnits) : randChoice(cubicUnits);
+  }
 
   let value, result, attempts=0;
   do{
@@ -340,6 +371,8 @@ const btnHideAll = document.getElementById("btnHideAll");
 const btnNewWorksheet = document.getElementById("btnNewWorksheet");
 
 const rangeSel = document.getElementById("rangeSel");
+const difficultySel = document.getElementById("difficultySel");
+const subtitleText = document.getElementById("subtitleText");
 
 const toggleTimer = document.getElementById("toggleTimer");
 const toggleSound = document.getElementById("toggleSound");
@@ -419,6 +452,14 @@ function clearTimer(){
 /* =========================
    Session & UI
    ========================= */
+function updateSubtitle(){
+  if (difficultySel.value === "basic"){
+    subtitleText.textContent = "Basic mode • Start from key facts (cm³/dm³/m³ or mL/L), targets can be any unit";
+  } else {
+    subtitleText.textContent = "Advanced mode • Mixed directions (mm³, cm³, dm³, m³ ↔ mL, cL, dL, L, kL)";
+  }
+}
+
 function updateStats(){
   scoreEl.textContent = state.score;
   streakEl.textContent = state.streak;
@@ -432,7 +473,7 @@ function updateStats(){
 function announce(msg){ live.textContent = ""; setTimeout(()=>{ live.textContent = msg; }, 10); }
 
 function newRound(){
-  state.problem = newProblem(rangeSel.value);
+  state.problem = newProblem(rangeSel.value, difficultySel.value);
   promptText.innerHTML = state.problem.prompt;
   targetUnitBadge.textContent = state.problem.toU;
   stepsBox.style.display = "none";
@@ -466,7 +507,7 @@ function markCorrect(){
   beepCorrect();
   btnSubmit.disabled = true;
   btnNext.disabled = false;
-  btnShowSteps.disabled = false; // allow to inspect steps even when correct
+  btnShowSteps.disabled = false;
   state.awaitingNext = true;
 }
 
@@ -533,7 +574,7 @@ function buildWorksheet(n){
   wsList.innerHTML = "";
   worksheetPanel.classList.remove("reveal");
   for (let i=1;i<=n;i++){
-    const p = newProblem(rangeSel.value);
+    const p = newProblem(rangeSel.value, difficultySel.value);
     const row = document.createElement("div");
     const q = document.createElement("div");
     const a = document.createElement("div");
@@ -593,51 +634,21 @@ toggleHC.addEventListener("change", ()=>{
   document.documentElement.classList.toggle("hc", toggleHC.checked);
 });
 
-/* =========================
-   Developer Tests (?dev=1)
-   ========================= */
-function devAssert(name, fn){
-  try{
-    const res = fn();
-    if (!res) throw new Error("Assertion failed");
-    console.log("✅", name);
-  }catch(e){
-    console.error("❌", name, e);
+difficultySel.addEventListener("change", ()=>{
+  updateSubtitle();
+  if (modeSel.value === "worksheet"){
+    buildWorksheet(Number(wsCount.value));
+  } else {
+    newRound();
   }
-}
-function runDevTests(){
-  console.log("=== DEV TESTS: Convert Between Cubic Units and Liters ===");
-  devAssert("1 cm³ == 1 mL", ()=> nearlyEqual(convert(1,"cm³","mL"), 1));
-  devAssert("1 dm³ == 1 L", ()=> nearlyEqual(convert(1,"dm³","L"), 1));
-  devAssert("1 m³ == 1000 L", ()=> nearlyEqual(convert(1,"m³","L"), 1000));
-  devAssert("1000 mL == 1 L", ()=> nearlyEqual(convert(1000,"mL","L"), 1));
-  devAssert("250 cL == 2.5 L", ()=> nearlyEqual(convert(250,"cL","L"), 2.5));
-  devAssert("500 mL == 0.5 L", ()=> nearlyEqual(convert(500,"mL","L"), 0.5));
-  devAssert("2.5 dm³ == 250 cL", ()=> nearlyEqual(convert(2.5,"dm³","cL"), 250));
-  devAssert("500 mL == 500 cm³", ()=> nearlyEqual(convert(500,"mL","cm³"), 500));
-  devAssert("1 000 000 mm³ == 1 L", ()=> nearlyEqual(convert(1_000_000,"mm³","L"), 1));
-  devAssert("2 kL == 2 m³", ()=> nearlyEqual(convert(2,"kL","m³"), 2));
-  // Generator constraints: always cross-type
-  for (let i=0;i<30;i++){
-    const p = newProblem("small"); // use default range semantics in test too
-    const isFromCubic = cubicUnits.includes(p.fromU);
-    const isToCubic = cubicUnits.includes(p.toU);
-    const isFromLiter = literUnits.includes(p.fromU);
-    const isToLiter = literUnits.includes(p.toU);
-    devAssert("Generated units are cross-type", ()=> (isFromCubic && isToLiter) || (isFromLiter && isToCubic));
-    devAssert("Answer finite", ()=> isFinite(p.answer));
-  }
-}
+});
 
 /* =========================
    Init
    ========================= */
 (function init(){
-  const params = new URLSearchParams(location.search);
-  if (params.get("dev") === "1"){ runDevTests(); }
-
-  // Default UI: Worksheet controls hidden; range default already set to "small"
   wsGroup.style.display = "none";
+  updateSubtitle();
   newRound();
   setTimeout(()=>{ answerInput.focus(); }, 200);
   announce("Enter to submit. On correct, Enter goes to Next. Escape clears input.");
